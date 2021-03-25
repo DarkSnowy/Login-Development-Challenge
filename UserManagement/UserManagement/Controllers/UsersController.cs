@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,7 @@ using System.Threading.Tasks;
 using UserManagement.Database;
 using UserManagement.Database.Models;
 using UserManagement.JWTAuthentication;
+using UserManagement.Models;
 
 namespace UserManagement.Controllers
 {
@@ -33,7 +35,9 @@ namespace UserManagement.Controllers
 
         private readonly IConfiguration _configuration;
 
-            public UsersController(ILogger<UsersController> logger, 
+        private readonly Mapper _mapper;
+
+        public UsersController(ILogger<UsersController> logger, 
                 UserManagementContext dbcontext, 
                 UserManager<ApplicationUser > userManager, 
                 RoleManager<IdentityRole> roleManager, 
@@ -44,21 +48,25 @@ namespace UserManagement.Controllers
             _userManager = userManager;
             _roleManager = roleManager;
             _configuration = configuration;
+
+            // Create an instance of AutoMapper to make it easier to clean models for data transfer.
+            var config = new MapperConfiguration(cfg => cfg.CreateMap<ApplicationUser, UserDto>());
+            _mapper = new Mapper(config);
         }
 
         [Authorize(Roles = UserRoles.StaffOrAdmin)]
         [HttpGet]
         [Route("/Users")]
-        public List<ApplicationUser> Users()
+        public List<UserDto> Users()
         {
-            List<ApplicationUser> users = _userManager.Users.ToListAsync().Result;
+            var users = (List<UserDto>)_userManager.Users.Select(x => _mapper.Map<UserDto>(x));
             return users;
         }
 
         [Authorize]
         [HttpGet]
         [Route("/Users/{userId}")]
-        public ApplicationUser GetUser(string UserId = null)
+        public UserDto GetUser(string UserId = null)
         {
             ApplicationUser user;
             var currentUserId = _userManager.GetUserId(this.User);
@@ -75,7 +83,7 @@ namespace UserManagement.Controllers
                 user = _userManager.GetUserAsync(this.User).Result;
             }
 
-            return user;
+            return _mapper.Map<UserDto>(user);
         }
 
         [HttpPost]
@@ -179,10 +187,22 @@ namespace UserManagement.Controllers
         [HttpPut]
         [Route("/Users")]
         [Authorize(Roles = UserRoles.Admin)]
-        public async Task<ApplicationUser> UpdateUser([FromBody] ApplicationUser user)
+        public async Task<UserDto> UpdateUser([FromBody] UserDto user)
         {
-            await _userManager.UpdateAsync(user);
-            return user;
+            // Find the user with matching id.
+            ApplicationUser appUser = await _userManager.FindByIdAsync(user.Id);
+
+            // Set the fields which can be changed.
+            appUser.Email = user.Email;
+            appUser.Firstname = user.Firstname;
+            appUser.Middlename = user.Middlename;
+            appUser.Lastname = user.Lastname;
+
+            // Update the user.
+            await _userManager.UpdateAsync(appUser);
+
+            // Return the values, as saved, back to the caller.
+            return _mapper.Map<UserDto>(appUser);
         }
     }
 }
