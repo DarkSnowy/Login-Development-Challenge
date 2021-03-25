@@ -9,6 +9,7 @@ namespace UserManagement.JWTAuthentication
     {
         public const string Admin = "Admin";
         public const string Staff = "Staff";
+        public const string StaffOrAdmin = "Admin,Staff";
         public const string User = "User";
     }
 }
