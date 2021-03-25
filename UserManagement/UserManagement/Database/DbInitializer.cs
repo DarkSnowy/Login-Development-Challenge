@@ -1,52 +1,51 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
 using UserManagement.Database.Models;
 using Microsoft.AspNetCore.Identity;
+using UserManagement.JWTAuthentication;
+using Microsoft.EntityFrameworkCore;
 
 namespace UserManagement.Database
 {
     public static class DbInitializer
     {
-        public static void Initialize(UserManagementContext context)
+        public static async void Initialize(UserManagementContext context, UserManager<ApplicationUser > userManager, RoleManager<IdentityRole> roleManager)
         {
-            // Creates the schema and tables if they have not yet been created.
-            context.Database.EnsureCreated();
+            // Creates or updates the database schema.
+            await context.Database.MigrateAsync();
+
+            // Create Admin roll in the roleManager if it doesn't exist.
+            if (!await roleManager.RoleExistsAsync(UserRoles.Admin))
+                await roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
+
+            // Create Staff roll if it doesn't exist.
+            if (!await roleManager.RoleExistsAsync(UserRoles.Staff))
+                await roleManager.CreateAsync(new IdentityRole(UserRoles.Staff));
+
+            // Create User roll if it doesn't exist.
+            if (!await roleManager.RoleExistsAsync(UserRoles.User))
+                await roleManager.CreateAsync(new IdentityRole(UserRoles.User));
 
             string adminEmail = "admin@usermanagement.com";
 
-            // Checks to see if the admin account has been created and exits if it has.
-            if (context.Users.Any(x => x.Email == adminEmail))
+            var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+            // Checks to see if the admin account has been created and exit if it has.
+            if (adminUser != null)
                 return;
 
-            byte[] salt;
-            new RNGCryptoServiceProvider().GetBytes(salt = new byte[16]);
-            var pbkdf2 = new Rfc2898DeriveBytes("password", salt, 100000);
-            byte[] hash = pbkdf2.GetBytes(20);
-
-            User admin = new()
+            // Create an admin user.
+            ApplicationUser  admin = new()
             {
-                Firstname = "System",
-                Middlename = null,
-                Lastname = "Administrator",
                 Email = adminEmail,
-                AccountType = User.Account.Admin,
-                Created = DateTime.Now,
-                Permissions = new List<UserPermission>()
-                {
-                    new UserPermission()
-                    {
-                        Permission = UserPermission.PermissionType.FullAdmin
-                    }
-                }
+                Firstname = "System",
+                Lastname = "Administrator",
+                SecurityStamp = Guid.NewGuid().ToString()
             };
 
-            string password = new PasswordHasher<User>().HashPassword(admin, "AdminPassword");
-            admin.Password = password;
+            await userManager.CreateAsync(admin, "AdminPassword123!");
 
-            context.Add(admin);
-            context.SaveChanges();
+            // Add admin role.
+            await userManager.AddToRoleAsync(admin, UserRoles.Admin);
         }
     }
 }

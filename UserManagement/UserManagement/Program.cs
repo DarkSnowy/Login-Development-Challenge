@@ -1,13 +1,11 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using UserManagement.Database;
+using Microsoft.AspNetCore.Identity;
+using UserManagement.Database.Models;
 
 namespace UserManagement
 {
@@ -20,15 +18,25 @@ namespace UserManagement
             host.Run();
         }
 
+        /// <summary>
+        /// Create the database if it doesn't already exist.
+        /// </summary>
+        /// <param name="host"></param>
         public static void CreateDb(IHost host)
         {
+            // Get a scope so that we can access services.
             using var scope = host.Services.CreateScope();
             var services = scope.ServiceProvider;
 
             try
             {
+                // Get the database context service.
                 UserManagementContext dbContext = services.GetRequiredService<UserManagementContext>();
-                DbInitializer.Initialize(dbContext);
+                UserManager<ApplicationUser > userManager = services.GetRequiredService<UserManager<ApplicationUser >>();
+                RoleManager<IdentityRole> roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+                // Initialize the database.
+                DbInitializer.Initialize(dbContext, userManager, roleManager);
             }
             catch (Exception ex)
             {
