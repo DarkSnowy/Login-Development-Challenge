@@ -41,7 +41,7 @@ namespace UserManagement
             });
 
             // This adds an identity system for managing user identities.
-            services.AddIdentity<ApplicationUser , IdentityRole>()
+            services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<UserManagementContext>()
                 .AddDefaultTokenProviders();
 
@@ -81,6 +81,10 @@ namespace UserManagement
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            // Added static files in order to host the frontend files on the same server.
+            // Remove this line if the frontend is split off and hosted seperately.
+            app.UseStaticFiles();
 
             // Enable using the Jwt authentication service we added.
             app.UseAuthentication();
