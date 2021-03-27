@@ -4,9 +4,9 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace UserManagement.JWTAuthentication
+namespace UserManagement.Models
 {
-    public class RegisterModel
+    public class Register
     {
         [Required(ErrorMessage = "Firstname is required")]
         public string Firstname { get; set; }

@@ -26,16 +26,12 @@
     box-sizing: content-box;
 }
 
-.row+.row {
-    margin-top: 1rem;
+.row + .row {
+    margin-top: 1em;
 }
 
 .centre {
     text-align: center;
-}
-
-button {
-    width: 100px
 }
 
 @media(min-width: 576px) {
@@ -52,7 +48,11 @@ button {
     min-width: 250px;
 }
 
-#login-container input {
-    width: 100%;
-    min-width: 10em;
-}
+    #login-container button {
+        width: 110px
+    }
+
+    #login-container input {
+        width: 100%;
+        min-width: 10em;
+    }

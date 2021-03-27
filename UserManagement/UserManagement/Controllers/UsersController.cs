@@ -37,10 +37,10 @@ namespace UserManagement.Controllers
 
         private readonly Mapper _mapper;
 
-        public UsersController(ILogger<UsersController> logger, 
-                UserManagementContext dbcontext, 
-                UserManager<ApplicationUser > userManager, 
-                RoleManager<IdentityRole> roleManager, 
+        public UsersController(ILogger<UsersController> logger,
+                UserManagementContext dbcontext,
+                UserManager<ApplicationUser> userManager,
+                RoleManager<IdentityRole> roleManager,
                 IConfiguration configuration)
         {
             _logger = logger;
@@ -50,23 +50,23 @@ namespace UserManagement.Controllers
             _configuration = configuration;
 
             // Create an instance of AutoMapper to make it easier to clean models for data transfer.
-            var config = new MapperConfiguration(cfg => cfg.CreateMap<ApplicationUser, UserDto>());
+            var config = new MapperConfiguration(cfg => cfg.CreateMap<ApplicationUser, User>());
             _mapper = new Mapper(config);
         }
 
         [Authorize(Roles = UserRoles.StaffOrAdmin)]
         [HttpGet]
         [Route("/Users")]
-        public List<UserDto> Users()
+        public List<User> Users()
         {
-            var users = (List<UserDto>)_userManager.Users.Select(x => _mapper.Map<UserDto>(x));
+            var users = (List<User>)_userManager.Users.Select(x => _mapper.Map<User>(x));
             return users;
         }
 
         [Authorize]
         [HttpGet]
         [Route("/Users/{userId}")]
-        public UserDto GetUser(string UserId = null)
+        public User GetUser(string UserId = null)
         {
             ApplicationUser user;
             var currentUserId = _userManager.GetUserId(this.User);
@@ -83,37 +83,50 @@ namespace UserManagement.Controllers
                 user = _userManager.GetUserAsync(this.User).Result;
             }
 
-            return _mapper.Map<UserDto>(user);
+            return _mapper.Map<User>(user);
         }
 
         [HttpPost]
         [Route("Login")]
-        public async Task<IActionResult> Login(string email, string password)
+        public async Task<IActionResult> Login([FromBody] Login model)
+        {
+            if (model == null)
+                return StatusCode(StatusCodes.Status400BadRequest, new Response { Status = "Bad Request", Message = "Request body was badly formatted or empty." });
+
+            return await Login2(model.Email, model.Password);
+        }
+
+        private async Task<IActionResult> Login2(string email, string password)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(email))
+                    return StatusCode(StatusCodes.Status400BadRequest, new Response { Status = "Bad Request", Message = "Email is missing." });
+
+                if (string.IsNullOrWhiteSpace(password))
+                    return StatusCode(StatusCodes.Status400BadRequest, new Response { Status = "Bad Request", Message = "Password is mission." });
+
                 // Search the User table for the users email address.
                 ApplicationUser user = await _userManager.FindByEmailAsync(email.ToLower());
 
                 // If a user with this email isn't found then return Unauthorized.
                 if (user == null)
-                    return Unauthorized();
+                    return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Unauthorized", Message = "Email or password is incorrect." });
 
                 // Check the password.
                 bool result = await _userManager.CheckPasswordAsync(user, password);
 
                 // If the password fails verification then return Unauthorized.
                 if (result == false)
-                    return Unauthorized();
+                    return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Unauthorized", Message = "Email or password is incorrect." });
 
                 // Create a security key to sign the token with.
                 SymmetricSecurityKey authSigningKey = new(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
 
-                var authClaims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            };
+                var authClaims = new List<Claim> {
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                };
 
                 // Get the users roles and add them to the token.
                 var userRoles = await _userManager.GetRolesAsync(user);
@@ -142,7 +155,7 @@ namespace UserManagement.Controllers
 
         [HttpPost]
         [Route("Register")]
-        public async Task<IActionResult> Register([FromBody] RegisterModel model)
+        public async Task<IActionResult> Register([FromBody] Register model)
         {
             try
             {
@@ -176,8 +189,9 @@ namespace UserManagement.Controllers
                 await _userManager.AddToRoleAsync(user, UserRoles.User);
 
                 // Get and return the login token if registration is successful. This saves a user needing to log in directly after registering (which is old-hat).
-                return await Login(model.Email, model.Password);
-            } catch(Exception ex)
+                return await Login2(model.Email, model.Password);
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "An exception occured while trying to process a user registration", model);
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed with an unknown exception." });
@@ -187,7 +201,7 @@ namespace UserManagement.Controllers
         [HttpPut]
         [Route("/Users")]
         [Authorize(Roles = UserRoles.Admin)]
-        public async Task<UserDto> UpdateUser([FromBody] UserDto user)
+        public async Task<User> UpdateUser([FromBody] User user)
         {
             // Find the user with matching id.
             ApplicationUser appUser = await _userManager.FindByIdAsync(user.Id);
@@ -202,7 +216,7 @@ namespace UserManagement.Controllers
             await _userManager.UpdateAsync(appUser);
 
             // Return the values, as saved, back to the caller.
-            return _mapper.Map<UserDto>(appUser);
+            return _mapper.Map<User>(appUser);
         }
     }
 }

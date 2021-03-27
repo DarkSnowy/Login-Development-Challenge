@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace UserManagement.Models
 {
-    public class UserDto
+    public class User
     {
         public string Id { get; set; }
 
