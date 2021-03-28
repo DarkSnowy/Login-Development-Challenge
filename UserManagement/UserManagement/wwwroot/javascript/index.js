@@ -1,4 +1,5 @@
 ﻿var vueApp;
+var apiUrl = "https://localhost:44363/";
 
 $(function () {
     // Create vue app.
@@ -9,39 +10,45 @@ $(function () {
             displayUser: false,
             register: true,
             isStaff: false,
-            isAdmin: false
-        },
-        components: {
-            'login-form': {},
-            'user-form': {}
+            isAdmin: false,
+            id: null,
+            edit: false,
+            staff: false,
+            loggedIn: false
         },
         methods: {
-            onUserCancel(value) {
+            onUserCancel(register) {
                 this.displayUser = false;
                 this.displayLogin = true;
             },
-            onLogin(token) {
-                SetupAjax(token);
-                this.displayLogin = false;
-                this.register = false;
-                this.displayUser = true;
+            onLogin(data) {
+                // Save the token and info into a cookie for handling page is refreshes.
+                $cookies.set('token', data.token, data.expiration);
+                $cookies.set('roles', data.roles, data.expiration);
+
+                setLogin(data.token, data.roles);
             },
             onNewRegister() {
-                //this.$refs.UserComponent.register = true;
-                this.displayUser = true;
-                this.displayLogin = false;
+                vueApp.register = true;
+                vueApp.displayLogin = false;
+                vueApp.displayUser = true;
+            },
+            onLogout() {
+                $cookies.remove('token');
+                $cookies.remove('roles');
+                vueApp.displayLogin = true;
+                vueApp.displayUser = false;
             }
         },
     });
 
-    var token = null;// = $cookies.get('token');
+    var token = $cookies.get('token');
+    var roles = $cookies.get('roles');
 
-    if (token) {
-        vueApp.displayLogin = false;
-        vueApp.displayUser = true;
-    }
-
-    SetupAjax(token);
+    if (token)
+        setLogin(token, roles);
+    else
+        setAjax(null);
 
     // Add a click event listener to the login button
     $("#submit-login").click(function () {
@@ -53,12 +60,31 @@ $(function () {
     });
 });
 
+function setLogin(token, roles) {
+    setAjax(token);
+
+    if (jQuery.inArray("Staff", roles)) {
+        isStaff = true;
+    }
+
+    if (jQuery.inArray("Admin", roles)) {
+        isStaff = true;
+        isAdmin = true;
+    }
+
+    vueApp.register = false;
+    vueApp.displayLogin = false;
+    vueApp.displayUser = true;
+    vueApp.id = "me";
+    vueApp.loggedIn = true;
+}
+
 // This sets up the ajax authorization header with the passed token.
-function SetupAjax(token) {
+function setAjax(token) {
     $.ajaxSetup({
         contentType: 'application/json; charset=utf-8',
         headers: {
-            'Authorization': token
+            'Authorization': "Bearer " + token
         }
     })
 }

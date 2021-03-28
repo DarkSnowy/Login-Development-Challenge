@@ -66,24 +66,29 @@ namespace UserManagement.Controllers
         [Authorize]
         [HttpGet]
         [Route("/Users/{userId}")]
-        public User GetUser(string UserId = null)
+        public async Task<IActionResult> GetUser(string userId)
         {
-            ApplicationUser user;
-            var currentUserId = _userManager.GetUserId(this.User);
+            ApplicationUser user = null;
 
-            if (UserId != null && UserId != currentUserId)
+            try
             {
-                if (!this.User.IsInRole(UserRoles.Admin) && !this.User.IsInRole(UserRoles.Staff))
-                    return null;
+                user = await _userManager.FindByEmailAsync(this.User.Identity.Name);
 
-                user = _userManager.FindByIdAsync(UserId).Result;
+                if (userId != user.Id)
+                    user = _userManager.FindByIdAsync(userId).Result;
+
+                if(user == null)
+                    StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Failed to find user." });
+
+                // Get the values from ApplicationUser and place them into a simpler object.
+                User mapped = _mapper.Map<User>(user);
+                return Ok(mapped);
             }
-            else
+            catch (Exception ex)
             {
-                user = _userManager.GetUserAsync(this.User).Result;
+                _logger.LogError(ex, "An exception occured while trying to process fetching user info", user);
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Failed to load user data." });
             }
-
-            return _mapper.Map<User>(user);
         }
 
         [HttpPost]
@@ -93,10 +98,10 @@ namespace UserManagement.Controllers
             if (model == null)
                 return StatusCode(StatusCodes.Status400BadRequest, new Response { Status = "Bad Request", Message = "Request body was badly formatted or empty." });
 
-            return await Login2(model.Email, model.Password);
+            return await Login(model.Email, model.Password);
         }
 
-        private async Task<IActionResult> Login2(string email, string password)
+        private async Task<IActionResult> Login(string email, string password)
         {
             try
             {
@@ -134,6 +139,8 @@ namespace UserManagement.Controllers
 
                 // Create the token
                 var token = new JwtSecurityToken(
+                    issuer: _configuration["JWT:ValidIssuer"],
+                    audience: _configuration["JWT:ValidAudience"],
                     expires: DateTime.Now.AddHours(3),
                     claims: authClaims,
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
@@ -143,7 +150,8 @@ namespace UserManagement.Controllers
                 return Ok(new
                 {
                     token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = token.ValidTo
+                    expiration = token.ValidTo,
+                    roles = userRoles
                 });
             }
             catch (Exception ex)
@@ -189,7 +197,7 @@ namespace UserManagement.Controllers
                 await _userManager.AddToRoleAsync(user, UserRoles.User);
 
                 // Get and return the login token if registration is successful. This saves a user needing to log in directly after registering (which is old-hat).
-                return await Login2(model.Email, model.Password);
+                return await Login(model.Email, model.Password);
             }
             catch (Exception ex)
             {

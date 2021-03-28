@@ -30,16 +30,14 @@
                 vue.Error = "";
 
                 // Send login details to server.
-                $.post("https://localhost:44363/Users/Login",
+                $.post(apiUrl + "Users/Login",
                     JSON.stringify({ "email": vue.Email, "password": vue.Password })
                 ).fail(function (error) {
                     // If it failed then inform the user why. We set the returned message ourselves so we know it is safe for display.
                     vue.Error = error.responseJSON.message;
                 }).done(function (data) {
-                    // Save the oauth token into a cookie for in case the page is refreshed.
-                    $cookies.set('token', data.token, data.expiration);
-                    // Add the token to the ajax header.
-                    vue.$emit('login', data.token);
+                    // Raise the login response to parent.
+                    vue.$emit('login', data);
                 }).always(function () {
                     // Always remove the loading spinner when call has completed.
                     vue.AwaitLogin = false;

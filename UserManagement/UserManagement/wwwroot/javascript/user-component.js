@@ -1,11 +1,12 @@
 ﻿Vue.component('user-component', {
     props: {
-        register: Boolean
+        register: Boolean,
+        staff: Boolean,
+        id: String
     },
     data: function () {
         return {
             UserTitle: 'Register',
-            Id: '',
             Firstname: '',
             Middlename: '',
             Lastname: '',
@@ -16,12 +17,42 @@
             Modified: '',
             Created: '',
             AwaitUserSubmit: false,
-            Staff: false,
-            Edit: false,
+            edit: Boolean,
             Error: ''
         }
     },
+    watch: {
+        id: {
+            immediate: true,
+            handler: function (newVal, oldVal) {
+                if (newVal != oldVal) {
+                    if (newVal == 'me')
+                        this.edit = true;
+
+                    this.getUser(newVal);
+                }
+            }
+        },
+        register: {
+            immediate: true,
+            handler: function (register) {
+                if (register) {
+                    UserTitle = 'Register';
+                } else {
+                    UserTitle = 'Details';
+                }
+            }
+        }
+    },
     methods: {
+        setFields(data) {
+            this.Firstname = data.firstname;
+            this.Middlename = data.middlename;
+            this.Lastname = data.lastname;
+            this.Email = data.email;
+            this.Modified = data.modified;
+            this.Created = data.created;
+        },
         onSubmit() {
             // Get the vue component as the context of 'this' will change inside of the ajax post methods.
             var vue = this;
@@ -53,10 +84,10 @@
                 if (vue.register)
                     path = "Users/Register";
                 else
-                    path = "Users"
+                    path = "Users";
 
                 // Send login details to server.
-                $.post("https://localhost:44363/" + path,
+                $.post(apiUrl + path,
                     JSON.stringify({
                         "firstname": vue.Firstname,
                         "middlename": vue.Middlename,
@@ -70,16 +101,18 @@
                     vue.Error = error.responseJSON.message;
                 }).done(function (data) {
                     if (vue.register) {
-                        // Save the oauth token into a cookie for in case the page is refreshed.
-                        $cookies.set('token', data.token, data.expiration);
-                        // Add the token to the ajax header.
-                        vue.$emit('login', data.token);
+                        // Raise the login data to the parent.
+                        vue.$emit('login', data);
+                        // Get the current user details.
+                        vue.getUser(vue.id);
+                    } else {
+                        vue.setFields(data)
                     }
                 }).always(function () {
                     // Always remove the loading spinner when call has completed.
                     vue.AwaitUserSubmit = false;
                 });
-            } catch(exception) {
+            } catch (exception) {
                 // If there is an error posting the request then don't leave the button loading forever.
                 vue.AwaitUserSubmit = false;
                 // Let the user know that something has gone wrong
@@ -88,6 +121,20 @@
         },
         onCancel() {
             this.$emit('cancel', this.register)
+        },
+        getUser(id) {
+            // Get the vue component as the context of 'this' will change inside of the ajax post methods.
+            var vue = this;
+
+            $.get(apiUrl + "Users/" + id
+            ).fail(function (error) {
+                if (error.status && error.status == '401')
+                    vue.Error = "Authorization failed";
+                else
+                    vue.Error = error.responseJSON.message;
+            }).done(function (data) {
+                vue.setFields(data)
+            });
         }
     },
     template: `
@@ -104,22 +151,22 @@
                         {{ Error }}
                     </div>
                 </div>
-                <div class="row" v-if="Staff">
+                <div class="row" v-if="staff">
                     <div class="col-sm-4 fieldname">
-                        Id
+                        id
                     </div>
                     <div class="col-sm">
-                        {{ Id }}
+                        {{ id }}
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-sm-4 fieldname">
                         Firstname
                     </div>
-                    <div class="col-sm" v-if="!!Edit">
+                    <div class="col-sm" v-if="!edit">
                         {{ Firstname }}
                     </div>
-                    <div class="col-sm" v-if="Edit||register">
+                    <div class="col-sm" v-if="edit||register">
                         <input type="text" v-model="Firstname" />
                     </div>
                 </div>
@@ -127,10 +174,10 @@
                     <div class="col-sm-4 fieldname">
                         Middlename
                     </div>
-                    <div class="col-sm" v-if="!!Edit">
+                    <div class="col-sm" v-if="!edit">
                         {{ Middlename }}
                     </div>
-                    <div class="col-sm" v-if="Edit||register">
+                    <div class="col-sm" v-if="edit||register">
                         <input type="text" v-model="Middlename" />
                     </div>
                 </div>
@@ -138,10 +185,10 @@
                     <div class="col-sm-4 fieldname">
                         Lastname
                     </div>
-                    <div class="col-sm" v-if="!!Edit">
+                    <div class="col-sm" v-if="!edit">
                         {{ Lastname }}
                     </div>
-                    <div class="col-sm" v-if="Edit||register">
+                    <div class="col-sm" v-if="edit||register">
                         <input type="text" v-model="Lastname" />
                     </div>
                 </div>
@@ -149,14 +196,14 @@
                     <div class="col-sm-4 fieldname">
                         Email
                     </div>
-                    <div class="col-sm" v-if="!!Edit">
+                    <div class="col-sm" v-if="!edit">
                         {{ Email }}
                     </div>
-                    <div class="col-sm" v-if="Edit||register">
+                    <div class="col-sm" v-if="edit||register">
                         <input type="text" v-model="Email" />
                     </div>
                 </div>
-                <div class="row" v-if="!register">
+                <div class="row" v-if="id=='me'">
                     <div class="col-sm-4 fieldname">
                         Old Password
                     </div>
@@ -164,7 +211,7 @@
                         <input type="password" v-model="OldPassword" />
                     </div>
                 </div>
-                <div class="row">
+                <div class="row" v-if="register||id=='me'">
                     <div class="col-sm-4 fieldname">
                         <span v-if="!register">New </span>Password
                     </div>
@@ -172,7 +219,7 @@
                         <input type="password" v-model="NewPassword" />
                     </div>
                 </div>
-                <div class="row">
+                <div class="row" v-if="register||id=='me'">
                     <div class="col-sm-4 fieldname">
                         Confirm Password
                     </div>
@@ -180,7 +227,7 @@
                         <input type="password" v-model="ConfirmPassword" />
                     </div>
                 </div>
-                <div class="row" v-if="Staff">
+                <div class="row" v-if="staff">
                     <div class="col-sm-4 fieldname">
                         Modified
                     </div>
@@ -188,7 +235,7 @@
                         {{ Modified }}
                     </div>
                 </div>
-                <div class="row" v-if="Staff">
+                <div class="row" v-if="staff">
                     <div class="col-sm-4 fieldname">
                         Created
                     </div>
@@ -196,14 +243,14 @@
                         {{ Created }}
                     </div>
                 </div>
-                <div class="row centre">
+                <div class="row centre" v-if="edit||register||id=='me'">
                     <div class="col-sm">
                         <button id="user-submit" :disabled="!!AwaitUserSubmit" v-on:click="onSubmit">
                             <i class="fa fa-spinner fa-spin" v-show="AwaitUserSubmit">&nbsp;&nbsp;</i>Submit
                         </button>
                     </div>
                 </div>
-                <div class="row centre">
+                <div class="row centre" v-if="edit||register">
                     <div class="col-sm">
                         <button v-on:click="onCancel">
                             Cancel

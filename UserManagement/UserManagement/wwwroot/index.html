@@ -33,12 +33,14 @@
     </noscript>
 
     <div class="container" id="App">
-        <div id="login-form">
-            <login-component v-if="displayLogin" @login="onLogin" @new="onNewRegister"></login-component>
+        <div class="logout" v-if="loggedIn">
+            <button v-on:click="onLogout">
+                Log Out
+            </button>
         </div>
-        <div id="user-form">
-            <user-component v-if="displayUser" @cancel="onUserCancel" @login="onLogin" v-bind:register="register"></user-component>
-        </div>
+
+        <login-component v-if="displayLogin" @login="onLogin" @new="onNewRegister"></login-component>
+        <user-component v-if="displayUser" @cancel="onUserCancel" @login="onLogin" v-bind:register="register" v-bind:id="id" v-bind:staff="staff"></user-component>
     </div>
 </body>
 </html>
