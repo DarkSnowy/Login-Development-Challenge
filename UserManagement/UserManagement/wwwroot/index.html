@@ -11,9 +11,16 @@
     <link rel="stylesheet" href="./css/index.css">
     <!--This is the css we use for the loading symbol on our buttons.-->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!--Include the jQuery library-->
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script type="text/javascript" src="https://unpkg.com/vue"></script>
+    <!--Include the Vue library-->
+    <script type="text/javascript" src="https://unpkg.com/vue@2"></script>
     <script type="text/javascript" src="https://unpkg.com/vue-cookies@1.7.4/vue-cookies.js"></script>
+
+    <!--Include the vue components-->
+    <script type="text/javascript" src="./javascript/login-component.js"></script>
+    <script type="text/javascript" src="./javascript/user-component.js"></script>
+    <!--Include the main script file for this page-->
     <script type="text/javascript" src="./javascript/index.js"></script>
 </head>
 <body>
@@ -25,55 +32,13 @@
         </div>
     </noscript>
 
-    <div class="container" id="LoginApp">
-        <div class="row">
-            <div class="col-sm"></div>
-            <div class="col-sm mr-auto ml-auto" id="login-container">
-                <div class="centre row">
-                    <div class="col-sm" style="font-weight: 600; font-size: 20px;">
-                        Login
-                    </div>
-                </div>
-                <div class="centre row">
-                    <div class="col-sm" style="color: red;">
-                        {{ Error }}
-                    </div>
-                </div>
-                <div class="centre row">
-                    <div class="col-sm-3">
-                        Email
-                    </div>
-                    <div class="col-sm">
-                        <input type="text" id="login-email-input" />
-                    </div>
-                </div>
-                <div class="centre row">
-                    <div class="col-sm-3">
-                        Password
-                    </div>
-                    <div class="col-sm">
-                        <input type="password" id="login-password-input" />
-                    </div>
-                </div>
-                <div class="centre row">
-                    <div class="col-sm">
-                        <button id="submit-login">
-                            <i class="fa fa-spinner fa-spin" id="submit-login-spinner">&nbsp;&nbsp;</i>Submit
-                        </button>
-                    </div>
-                </div>
-                <div class="centre row">
-                    <div class="col-sm">
-                        <button id="submit-register">
-                            <i class="fa fa-spinner fa-spin" id="submit-register-spinner">&nbsp;&nbsp;</i>Register
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm"></div>
+    <div class="container" id="App">
+        <div id="login-form">
+            <login-component v-if="displayLogin" @login="onLogin" @new="onNewRegister"></login-component>
+        </div>
+        <div id="user-form">
+            <user-component v-if="displayUser" @cancel="onUserCancel" @login="onLogin" v-bind:register="register"></user-component>
         </div>
     </div>
-
-
 </body>
 </html>

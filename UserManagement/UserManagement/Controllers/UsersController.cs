@@ -155,7 +155,7 @@ namespace UserManagement.Controllers
 
         [HttpPost]
         [Route("Register")]
-        public async Task<IActionResult> Register([FromBody] Register model)
+        public async Task<IActionResult> Register([FromBody] User model)
         {
             try
             {

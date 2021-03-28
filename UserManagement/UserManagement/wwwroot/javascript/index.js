@@ -1,19 +1,46 @@
-﻿var vueLoginApp;
+﻿var vueApp;
 
 $(function () {
-    $("#submit-login-spinner").hide();
-    $("#submit-register-spinner").hide();
-
-    // Create vue Login app.
-    vueLoginApp = new Vue({
-        el: '#LoginApp',
+    // Create vue app.
+    vueApp = new Vue({
+        el: '#App',
         data: {
-            Error: '',
-            Unauthenticated: true
-        }
+            displayLogin: true,
+            displayUser: false,
+            register: true,
+            isStaff: false,
+            isAdmin: false
+        },
+        components: {
+            'login-form': {},
+            'user-form': {}
+        },
+        methods: {
+            onUserCancel(value) {
+                this.displayUser = false;
+                this.displayLogin = true;
+            },
+            onLogin(token) {
+                SetupAjax(token);
+                this.displayLogin = false;
+                this.register = false;
+                this.displayUser = true;
+            },
+            onNewRegister() {
+                //this.$refs.UserComponent.register = true;
+                this.displayUser = true;
+                this.displayLogin = false;
+            }
+        },
     });
 
-    var token = $cookies.get('token');
+    var token = null;// = $cookies.get('token');
+
+    if (token) {
+        vueApp.displayLogin = false;
+        vueApp.displayUser = true;
+    }
+
     SetupAjax(token);
 
     // Add a click event listener to the login button
@@ -25,49 +52,6 @@ $(function () {
         SubmitLogin(email, password);
     });
 });
-
-function SubmitLogin(email, password) {
-    if (!email) {
-        vueLoginApp.Error = "Email is missing";
-        return;
-    }
-
-    if (!password) {
-        vueLoginApp.Error = "Password is missing";
-        return;
-    }
-
-    try {
-        $("#submit-login-spinner").show();
-        $("#submit-login-spinner").prop('disabled', true);
-
-        // Set error as empty on new attempt.
-        vueLoginApp.Error = "";
-
-        // Send login details to server.
-        $.post("https://localhost:44363/Users/Login",
-            JSON.stringify({ "email": email, "password": password })
-        ).fail(function (error) {
-            // If it failed then inform the user why. We set the returned message ourselves so we know it is safe for display.
-            vueLoginApp.Error = error.responseJSON.message;
-        }).done(function (data) {
-            // Save the oauth token into a cookie for in case the page is refreshed.
-            $cookies.set('token', data.token, data.expiration);
-            // Add the token to the ajax header.
-            SetupAjax(data.token);
-            Vue.Unauthenticated = false;
-        }).always(function () {
-            $("#submit-login-spinner").hide();
-            $("#submit-login-spinner").prop('disabled', false);
-        });
-    } catch {
-        // If there is an error posting the request then don't leave the button loading forever.
-        $("#submit-login-spinner").hide();
-        $("#submit-login-spinner").prop('disabled', false);
-        // Let the user know that something has gone wrong
-        vueLoginApp.Error = "Request failed";
-    }
-}
 
 // This sets up the ajax authorization header with the passed token.
 function SetupAjax(token) {

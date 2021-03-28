@@ -34,25 +34,52 @@
     text-align: center;
 }
 
+.right {
+    text-align: right;
+}
+
+.middle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.title {
+    font-weight: 600;
+    font-size: 20px;
+}
+
+.fieldname {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.user-form .fieldname {
+    min-width: 140px;
+}
+
 @media(min-width: 576px) {
-    #login-container {
+    .form-wrapper {
         margin-top: 5em;
         border: 1px solid black;
     }
 }
 
-#login-container {
+.form-wrapper {
     padding: 1em;
     background-color: azure;
     box-shadow: 10px 10px 5px grey;
     min-width: 250px;
+    vertical-align: text-top;
 }
 
-    #login-container button {
-        width: 110px
+    .form-wrapper button {
+        width: 110px;
     }
 
-    #login-container input {
+    .form-wrapper input {
         width: 100%;
         min-width: 10em;
+        display: flex;
+        justify-content: center;
     }
