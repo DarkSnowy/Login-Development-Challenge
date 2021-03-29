@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous">
+
+    <link rel="stylesheet" href="./css/index.css">
+    <!--This is the css we use for the loading symbol on our buttons.-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!--Include the jQuery library-->
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!--Include the Vue library-->
+    <script type="text/javascript" src="https://unpkg.com/vue@2"></script>
+    <script type="text/javascript" src="https://unpkg.com/vue-cookies@1.7.4/vue-cookies.js"></script>
+
+    <!--Include the vue components-->
+    <script type="text/javascript" src="./javascript/login-component.js"></script>
+    <script type="text/javascript" src="./javascript/user-component.js"></script>
+    <!--Include the main script file for this page-->
+    <script type="text/javascript" src="./javascript/index.js"></script>
+</head>
+<body>
+    <noscript>
+        <div class="curtain-black">
+        </div>
+        <div class="curtain-text">
+            This page requires Javascript.
+        </div>
+    </noscript>
+
+    <div class="container" id="App">
+        <div class="logout" v-if="loggedIn">
+            <button v-on:click="onLogout">
+                Log Out
+            </button>
+        </div>
+
+        <login-component v-if="displayLogin" @login="onLogin" @new="onNewRegister"></login-component>
+        <user-component v-if="displayUser" @cancel="onUserCancel" @login="onLogin" @authFailed="authFailed" v-bind:register="register" v-bind:id="id" v-bind:staff="staff"></user-component>
+    </div>
+</body>
+</html>
