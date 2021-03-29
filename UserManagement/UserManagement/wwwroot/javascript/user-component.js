@@ -26,9 +26,13 @@
             immediate: true,
             handler: function (newVal, oldVal) {
                 if (newVal != oldVal) {
+                    if (!newVal)
+                        return;
+
                     if (newVal == 'me')
                         this.edit = true;
 
+                    // Get the current user details.
                     this.getUser(newVal);
                 }
             }
@@ -38,6 +42,8 @@
             handler: function (register) {
                 if (register) {
                     this.UserTitle = 'Register';
+                    // Clear the fields.
+                    this.setFields(null);
                 } else {
                     this.UserTitle = 'User Details';
                 }
@@ -46,12 +52,22 @@
     },
     methods: {
         setFields(data) {
-            this.Firstname = data.firstname;
-            this.Middlename = data.middlename;
-            this.Lastname = data.lastname;
-            this.Email = data.email;
-            this.Modified = data.modified;
-            this.Created = data.created;
+            if (data) {
+                this.Firstname = data.firstname;
+                this.Middlename = data.middlename;
+                this.Lastname = data.lastname;
+                this.Email = data.email;
+                this.Modified = data.modified;
+                this.Created = data.created;
+            } else {
+                // If the data is null then clear the fields.
+                this.Firstname = "";
+                this.Middlename = "";
+                this.Lastname = "";
+                this.Email = "";
+                this.Modified = "";
+                this.Created = "";
+            }
         },
         onSubmit() {
             // Get the vue component as the context of 'this' will change inside of the ajax post methods.
@@ -67,8 +83,13 @@
                 return;
             }
 
-            if (this.register && vue.NewPassword != vue.ConfirmPassword) {
+            if ((this.register || vue.NewPassword) && vue.NewPassword != vue.ConfirmPassword) {
                 vue.Error = "Passwords do not match";
+                return;
+            }
+
+            if (!this.register && vue.NewPassword && !vue.OldPassword) {
+                vue.Error = "Must enter old password.";
                 return;
             }
 
@@ -104,8 +125,8 @@
                     if (vue.register) {
                         // Raise the login data to the parent.
                         vue.$emit('login', data);
-                        // Get the current user details.
-                        vue.getUser(vue.id);
+                        vue.NewPassword = "";
+                        vue.ConfirmPassword = "";
                     } else {
                         vue.setFields(data)
                     }
@@ -248,7 +269,7 @@
                 <div class="row centre" v-if="edit||register||id=='me'">
                     <div class="col-sm">
                         <button id="user-submit" :disabled="!!AwaitUserSubmit" v-on:click="onSubmit">
-                            <i class="fa fa-spinner fa-spin" v-show="AwaitUserSubmit">&nbsp;&nbsp;</i>Submit
+                            <i class="fa fa-spinner fa-spin" v-show="AwaitUserSubmit">&nbsp;&nbsp;</i><span v-if="register">Submit</span><span v-else>Save</span>
                         </button>
                     </div>
                 </div>

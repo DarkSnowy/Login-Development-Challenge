@@ -246,6 +246,11 @@ namespace UserManagement.Controllers
 
                 // Update the user.
                 await _userManager.UpdateAsync(updateUser);
+
+                // Update the password if the old and a new password have been provided.
+                if (!string.IsNullOrWhiteSpace(user.OldPassword) && !string.IsNullOrWhiteSpace(user.Password))
+                    await _userManager.ChangePasswordAsync(updateUser, user.OldPassword, user.Password);
+
                 var mapped = _mapper.Map<User>(updateUser);
 
                 // Return the values, as saved, back to the caller.

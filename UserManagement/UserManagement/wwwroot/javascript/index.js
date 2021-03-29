@@ -29,6 +29,7 @@ $(function () {
                 setLogin(data.token, data.roles);
             },
             onNewRegister() {
+                vueApp.id = null;
                 vueApp.register = true;
                 vueApp.displayLogin = false;
                 vueApp.displayUser = true;
@@ -70,11 +71,13 @@ $(function () {
 function setLogin(token, roles) {
     setAjax(token);
 
-    if (jQuery.inArray("Staff", roles)) {
+    // Assign Staff role.
+    if (jQuery.inArray("Staff", roles) != -1) {
         isStaff = true;
     }
 
-    if (jQuery.inArray("Admin", roles)) {
+    // Assign Admin role. This grants no further access to data on the frontend as roles are always checked on the backend.
+    if (jQuery.inArray("Admin", roles) != -1) {
         isStaff = true;
         isAdmin = true;
     }
