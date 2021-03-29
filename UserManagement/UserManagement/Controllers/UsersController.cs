@@ -54,19 +54,28 @@ namespace UserManagement.Controllers
             _mapper = new Mapper(config);
         }
 
-        [Authorize(Roles = UserRoles.StaffOrAdmin)]
+        [Authorize]
         [HttpGet]
         [Route("/Users")]
-        public List<User> Users()
+        public async Task<IActionResult> Users()
         {
-            var users = (List<User>)_userManager.Users.Select(x => _mapper.Map<User>(x));
-            return users;
+            try
+            {
+                // Get all the users and process them into a list before returning them, for efficient processor performance.
+                List<User> users = await _userManager.Users.Select(x => _mapper.Map<User>(x)).ToListAsync();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An exception occured while trying to process fetching all users");
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Failed to load users." });
+            }
         }
 
         [Authorize]
         [HttpGet]
         [Route("/Users/{userId}")]
-        public async Task<IActionResult> GetUser(string userId)
+        public async Task<IActionResult> GetUser(string userId = null)
         {
             ApplicationUser user = null;
 
@@ -74,10 +83,10 @@ namespace UserManagement.Controllers
             {
                 user = await _userManager.FindByEmailAsync(this.User.Identity.Name);
 
-                if (userId != user.Id)
+                if (userId != "me" && userId != user.Id)
                     user = _userManager.FindByIdAsync(userId).Result;
 
-                if(user == null)
+                if (user == null)
                     StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Failed to find user." });
 
                 // Get the values from ApplicationUser and place them into a simpler object.
@@ -185,7 +194,7 @@ namespace UserManagement.Controllers
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (!result.Succeeded)
                 {
-                    string message = "User creation failed! Please check user details and try again.";
+                    string message = "Registration failed.";
 
                     if (result.Errors.Any())
                         message = result.Errors.First().Description;
@@ -206,25 +215,47 @@ namespace UserManagement.Controllers
             }
         }
 
-        [HttpPut]
+        [HttpPost]
         [Route("/Users")]
-        [Authorize(Roles = UserRoles.Admin)]
-        public async Task<User> UpdateUser([FromBody] User user)
+        [Authorize]
+        public async Task<IActionResult> UpdateUser([FromBody] User user)
         {
-            // Find the user with matching id.
-            ApplicationUser appUser = await _userManager.FindByIdAsync(user.Id);
+            try
+            {
+                ApplicationUser currentUser = await _userManager.FindByEmailAsync(User.Identity.Name);
 
-            // Set the fields which can be changed.
-            appUser.Email = user.Email;
-            appUser.Firstname = user.Firstname;
-            appUser.Middlename = user.Middlename;
-            appUser.Lastname = user.Lastname;
+                if (user.Id == "me")
+                    user.Id = currentUser.Id;
 
-            // Update the user.
-            await _userManager.UpdateAsync(appUser);
+                if (currentUser.Id != user.Id && !User.IsInRole(UserRoles.Admin))
+                    return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Unauthorized", Message = "Email or password is incorrect." });
 
-            // Return the values, as saved, back to the caller.
-            return _mapper.Map<User>(appUser);
+                // Find the user with matching id.
+                ApplicationUser updateUser;
+
+                if (user.Id == currentUser.Id)
+                    updateUser = currentUser;
+                else
+                    updateUser = await _userManager.FindByIdAsync(user.Id);
+
+                // Set the fields which can be changed.
+                updateUser.Email = user.Email;
+                updateUser.Firstname = user.Firstname;
+                updateUser.Middlename = user.Middlename;
+                updateUser.Lastname = user.Lastname;
+
+                // Update the user.
+                await _userManager.UpdateAsync(updateUser);
+                var mapped = _mapper.Map<User>(updateUser);
+
+                // Return the values, as saved, back to the caller.
+                return Ok(mapped);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An exception occured while trying to process a user changes.", user);
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed with an unknown exception." });
+            }
         }
     }
 }

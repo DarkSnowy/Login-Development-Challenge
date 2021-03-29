@@ -38,6 +38,13 @@ $(function () {
                 $cookies.remove('roles');
                 vueApp.displayLogin = true;
                 vueApp.displayUser = false;
+            },
+            authFailed() {
+                // If session expires or gains access to an operation they shouldn't be doing then log them out.
+                vueApp.onLogout();
+                // Alert the user what happened.
+                alert("Authorisation failed. Session may have expired.");
+                // Should consider, in the future, updating of session cookie if user is remaining active.
             }
         },
     });

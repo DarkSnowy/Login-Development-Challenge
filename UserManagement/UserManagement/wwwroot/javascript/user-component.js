@@ -37,9 +37,9 @@
             immediate: true,
             handler: function (register) {
                 if (register) {
-                    UserTitle = 'Register';
+                    this.UserTitle = 'Register';
                 } else {
-                    UserTitle = 'Details';
+                    this.UserTitle = 'User Details';
                 }
             }
         }
@@ -62,12 +62,12 @@
                 return;
             }
 
-            if (!vue.NewPassword) {
+            if (this.register && !vue.NewPassword) {
                 vue.Error = "Password is missing";
                 return;
             }
 
-            if (vue.NewPassword != vue.ConfirmPassword) {
+            if (this.register && vue.NewPassword != vue.ConfirmPassword) {
                 vue.Error = "Passwords do not match";
                 return;
             }
@@ -89,6 +89,7 @@
                 // Send login details to server.
                 $.post(apiUrl + path,
                     JSON.stringify({
+                        "id": vue.id,
                         "firstname": vue.Firstname,
                         "middlename": vue.Middlename,
                         "lastname": vue.Lastname,
@@ -129,7 +130,8 @@
             $.get(apiUrl + "Users/" + id
             ).fail(function (error) {
                 if (error.status && error.status == '401')
-                    vue.Error = "Authorization failed";
+                    // If authorization failed then alert the parent.
+                    vue.$emit('authFailed');
                 else
                     vue.Error = error.responseJSON.message;
             }).done(function (data) {

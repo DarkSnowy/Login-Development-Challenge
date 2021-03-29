@@ -40,7 +40,7 @@
         </div>
 
         <login-component v-if="displayLogin" @login="onLogin" @new="onNewRegister"></login-component>
-        <user-component v-if="displayUser" @cancel="onUserCancel" @login="onLogin" v-bind:register="register" v-bind:id="id" v-bind:staff="staff"></user-component>
+        <user-component v-if="displayUser" @cancel="onUserCancel" @login="onLogin" @authFailed="authFailed" v-bind:register="register" v-bind:id="id" v-bind:staff="staff"></user-component>
     </div>
 </body>
 </html>
